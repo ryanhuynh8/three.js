@@ -54,11 +54,18 @@
 
 			let container, stats, clock, gui, mixer, actions, activeAction, previousAction;
 			let camera, scene, renderer, model, face;
+			let cube;
+			let m = new THREE.Matrix4()
+			let r = 0
+			let mouseDown = false
+			let mouseStartX, mouseStartY
+			let cameraM
 
 			const api = { state: 'Walking' };
 
 			init();
 			animate();
+
 
 			function init() {
 
@@ -66,8 +73,8 @@
 				document.body.appendChild( container );
 
 				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 100 );
-				camera.position.set( - 5, 3, 10 );
-				camera.lookAt( 0, 2, 0 );
+				camera.position.set( - 15, 3, 15 );
+				camera.lookAt( 0, 0, 0 );
 
 				scene = new THREE.Scene();
 				scene.background = new THREE.Color( 0xe0e0e0 );
@@ -96,6 +103,12 @@
 				grid.material.transparent = true;
 				scene.add( grid );
 
+				const geometry = new THREE.BoxGeometry( 1, 1, 1 ); 
+				const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} ); 
+				cube = new THREE.Mesh( geometry, material )
+				
+				cube.position.set(5,0.5,3)
+
 				// model
 
 				const loader = new GLTFLoader();
@@ -104,7 +117,9 @@
 					model = gltf.scene;
 					scene.add( model );
 
-					createGUI( model, gltf.animations );
+					model.add( cube );
+
+					// createGUI( model, gltf.animations );
 
 				}, undefined, function ( e ) {
 
@@ -118,7 +133,17 @@
 				container.appendChild( renderer.domElement );
 
 				window.addEventListener( 'resize', onWindowResize );
+				window.addEventListener('mousedown', (e) => {
+					mouseDown = true
+					mouseStartX = e.clientX
+					mouseStartY = e.clientY
+				})
 
+				window.addEventListener('mouseup', (e) => {
+					mouseDown = false
+				})
+
+				window.addEventListener('mousemove', mousemove)
 				// stats
 				stats = new Stats();
 				container.appendChild( stats.dom );
@@ -258,10 +283,61 @@
 
 				requestAnimationFrame( animate );
 
+				updateCamera(dt)
+
 				renderer.render( scene, camera );
 
 				stats.update();
 
+			}
+ 
+
+			function debugMatrix(matrix) {
+				const arr = matrix.elements
+				console.log('=================')
+				for (let i=0; i<4; i++) {
+					let s = ''
+					for (let j=0; j<4;j++) {
+						s += arr[i*4+j] + '  '
+					}
+					console.log(s)
+				}
+				console.log('=================')
+			}
+
+			debugMatrix(cube.matrix)
+			console.log(cube.position)
+			var foo = new THREE.Vector3()
+			foo = foo.setFromMatrixPosition(cube.matrix)
+			console.log(foo)
+
+			r = 0
+
+			function mousemove(e) {
+				console.log(mouseDown)
+				if (mouseDown) {
+					var x = e.clientX - mouseStartX
+					var y = e.clientY - mouseStartY
+					// r = x * 0.1
+					
+					console.log(x, y)
+				}
+			}
+
+			r = 0.5
+			
+			var mOrigin = camera.matrix.copy()
+
+			function updateCamera(dt) {		
+				r += r*dt
+				m = new THREE.Matrix4()
+				m.setPosition(0,0,0)
+				m.makeRotationY(THREE.MathUtils.degToRad(r*10))
+				var mNewCam = mOrigin ? mOrigin.copy() : new THREE.Matrix4()
+				mNewCam.premultiply(m)
+				mNewCam.decompose(camera.position, camera.rotation, camera.scale)
+				debugMatrix(camera.matrix)
+				
 			}
 
 		</script>
